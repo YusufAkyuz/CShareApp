@@ -13,6 +13,7 @@ import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -28,9 +29,40 @@ public class MainActivity extends AppCompatActivity {
 
         auth = FirebaseAuth.getInstance();
 
+        FirebaseUser user = auth.getCurrentUser();
+        if (user != null) {
+            Intent intent = new Intent(MainActivity.this, FeedActivity.class);
+            startActivity(intent);
+            finish();
+        }
+
     }
 
     public void signInClicked(View view) {
+
+        String eMail = binding.emailText.getText().toString();
+        String password = binding.passwordText.getText().toString();
+
+        if (eMail.isEmpty() || password.isEmpty()) {
+            Toast.makeText(this, "Pleas fill in the blanks", Toast.LENGTH_LONG).show();
+
+        }else {
+            auth.signInWithEmailAndPassword(eMail, password).addOnSuccessListener(new OnSuccessListener<AuthResult>() {
+                @Override
+                public void onSuccess(AuthResult authResult) {
+
+                    Intent intent = new Intent(MainActivity.this, FeedActivity.class);
+                    startActivity(intent);
+                    finish();
+
+                }
+            }).addOnFailureListener(new OnFailureListener() {
+                @Override
+                public void onFailure(@NonNull Exception e) {
+                    Toast.makeText(MainActivity.this, "Email or Password incorrect", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
 
     }
 
@@ -58,12 +90,7 @@ public class MainActivity extends AppCompatActivity {
             });
         }
 
-
-
-
-
-
-
-
     }
+
+
 }
