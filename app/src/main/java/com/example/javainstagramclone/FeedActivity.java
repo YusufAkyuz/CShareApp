@@ -22,7 +22,10 @@ public class FeedActivity extends AppCompatActivity {
 
 
         auth = FirebaseAuth.getInstance();
+
+        
     }
+
 
 
     //Menüyü bağlayan kodlar

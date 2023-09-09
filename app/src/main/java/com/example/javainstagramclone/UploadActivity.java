@@ -27,11 +27,16 @@ import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 
+import java.util.HashMap;
+import java.util.Objects;
 import java.util.UUID;
 
 public class UploadActivity extends AppCompatActivity {
@@ -60,7 +65,7 @@ public class UploadActivity extends AppCompatActivity {
 
         registerLauncher();
 
-        firebaseStorage = FirebaseStorage.getInstance();
+        firebaseStorage = FirebaseStorage.getInstance();            //Bununla database'e kayıt ederiz
         auth = FirebaseAuth.getInstance();
         firebaseFirestore = FirebaseFirestore.getInstance();
         storageReference = firebaseStorage.getReference();
@@ -75,10 +80,59 @@ public class UploadActivity extends AppCompatActivity {
             UUID uuid = UUID.randomUUID();
             String imageName = "images/" + uuid + ".jpg";
 
+            //Referans oluşturup verileri yönlendirerek storageye yerleştiriyoruz
+
             storageReference.child(imageName).putFile(imageData).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
                 @Override
                 public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
 
+                    //Url'yi almak için yeni reference oluşturduk
+
+                    StorageReference newReference = firebaseStorage.getReference(imageName);
+                    newReference.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+                        @Override
+                        public void onSuccess(Uri uri) {
+                            String downloadUrl = uri.toString();
+                            String comment = binding.commentText.getText().toString();
+
+                            FirebaseUser user = auth.getCurrentUser();
+                            String eMail = user.getEmail();
+
+                            HashMap<String, Object> postData = new HashMap<>();     //Key String olur Value ise Object olsun dedik
+                            postData.put("useremail", eMail);
+                            postData.put("downloadurl", downloadUrl);
+                            postData.put("comment", comment);
+                            postData.put("date", FieldValue.serverTimestamp());
+
+                            //Veri tabanına kaydetme işlemini yapıyoruz
+                            firebaseFirestore.collection("Posts").add(postData).addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
+                                @Override
+                                public void onSuccess(DocumentReference documentReference) {
+
+                                    //Başarılı şekilde kayıt ederse intent ile feed activiteye geri dönebiliriz
+                                    Intent intent = new Intent(UploadActivity.this, FeedActivity.class);
+
+                                    //Önceki açık olan aktiviteleri vs herşeyi kapatmak için
+
+                                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                                    startActivity(intent);
+
+                                }
+                            }).addOnFailureListener(new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    Toast.makeText(UploadActivity.this, e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                                }
+                            });
+
+
+                        }
+                    }).addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            Toast.makeText(UploadActivity.this, "Error", Toast.LENGTH_LONG).show();
+                        }
+                    });
 
 
                 }
